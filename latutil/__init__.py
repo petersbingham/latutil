@@ -19,7 +19,7 @@ def _create_save_path(str, ext):
     raise Exception("No path was supplied or could be inferred.")
   dir = os.path.dirname(str)
   split_base = os.path.splitext(os.path.basename(str))
-  save_path = dir + os.sep + split_base[0] + ext 
+  return dir + os.sep + split_base[0] + ext 
 
 def csv_to_latex(str, has_header=True):
   if _is_path(str):
