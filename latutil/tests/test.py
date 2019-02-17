@@ -7,8 +7,8 @@ import unittest
 import latutil
 
 class TestFiles(unittest.TestCase):
-    def test_sv_to_latex(self):
-      latutil.sv_to_latex_file("./test.csv", delimiter=",")
+    def test_sv_to_tex(self):
+      latutil.sv_to_tex_file("./test.csv", delimiter=",")
       self.assertTrue(os.path.exists("./test.tex"))
     
     def test_sv_to_pdf(self):
