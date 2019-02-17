@@ -21,35 +21,41 @@ def _create_save_path(input, ext):
   split_base = os.path.splitext(os.path.basename(input))
   return dir + os.sep + split_base[0] + ext 
 
-def sv_to_latex(input, has_header=True, delimiter=None):
+def sv_to_latex(input, has_header=True, delimiter=None, first_line=None, last_line=None):
   if _is_path(input):
     with open(input, 'r') as f:
       input = f.read()
+
+  sep = "\n"
+  if "\r\n" in input:
+    sep = "\r\n"
+  split_input = input.split(sep)
+  if first_line is not None:
+    split_input = split_input[first_line-1:]
+  if last_line is not None:
+    split_input = split_input[:last_line]
+
   if has_header:
-    sep = "\n"
-    if "\r\n" in input:
-      sep = "\r\n"
-    split_input = input.split(sep)
     header = split_input[0].split(delimiter)
     body = [line.split(delimiter) for line in split_input[1:]]
     return tabulate(body, header, tablefmt="latex")
   else:
-    body = [line.split(delimiter) for line in input]
+    body = [line.split(delimiter) for line in split_input]
     return tabulate(body, tablefmt="latex")
 
-def sv_to_latex_file(input, has_header=True, delimiter=None, save_path=None):
-  tex_str = sv_to_latex(input, has_header, delimiter)
+def sv_to_latex_file(input, has_header=True, delimiter=None, first_line=None, last_line=None, save_path=None):
+  tex_str = sv_to_latex(input, has_header, delimiter, first_line, last_line)
   if save_path is None:
     save_path = _create_save_path(input, ".tex")
   with open(save_path, 'w+') as f:
     f.write(_encapsulate_latex(tex_str))
 
-def sv_to_pdf(input, has_header=True, delimiter=None):
-  tex_str = sv_to_latex(input, has_header, delimiter)
+def sv_to_pdf(input, has_header=True, delimiter=None, first_line=None, last_line=None):
+  tex_str = sv_to_latex(input, has_header, delimiter, first_line, last_line)
   return build_pdf(_encapsulate_latex(tex_str))
 
-def sv_to_pdf_file(input, has_header=True, delimiter=None, save_path=None):
-  pdf = sv_to_pdf(input, has_header, delimiter)
+def sv_to_pdf_file(input, has_header=True, delimiter=None, first_line=None, last_line=None, save_path=None):
+  pdf = sv_to_pdf(input, has_header, delimiter, first_line, last_line)
   if save_path is None:
     save_path = _create_save_path(input, ".pdf")
   pdf.save_to(save_path)
