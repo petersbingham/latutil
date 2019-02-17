@@ -8,12 +8,12 @@ import latutil
 
 class test_test_files(unittest.TestCase):
     def test_csv_to_latex(self):
-      latutil.csv_to_latex_file("test.csv")
-      self.assertTrue(os.path.exists("test.tex"))
+      latutil.csv_to_latex_file("./test.csv")
+      self.assertTrue(os.path.exists("./test.tex"))
     
     def test_csv_to_pdf(self):
-      latutil.csv_to_pdf_file("test.csv")
-      self.assertTrue(os.path.exists("test.pdf"))
+      latutil.csv_to_pdf_file("./test.csv")
+      self.assertTrue(os.path.exists("./test.pdf"))
 
 if __name__ == "__main__":
     #Just for debug
