@@ -1,12 +1,12 @@
-# latutil
+# tutil
 Simple latex tools and command line interface.
 
 ## Installation
 
 Clone the repository and install with the following commands:
 
-    git clone https://github.com/petersbingham/latutil.git
-    cd latutil
+    git clone https://github.com/petersbingham/tutil.git
+    cd tutil
     python setup.py install
 
 ## Dependencies
