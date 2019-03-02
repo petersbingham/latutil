@@ -13,6 +13,7 @@ Clone the repository and install with the following commands:
 
 Third party packages:
  - latex
+ - tabulate
 
 ## Usage
 
