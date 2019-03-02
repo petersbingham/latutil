@@ -12,34 +12,34 @@ min_latex_end = "\\end{document}"
 latex_center_start = "\\begin{table}{}\n\\centering"
 latex_center_end = "\\end{table}"
 
-latex_create_landscape = "\\usepackage[create_landscape]{geometry}"
-latex_create_thin_margins = "\\usepackage{geometry}\geometry{left=20mm, right=20mm, top=25mm, bottom=25mm}"
+latex_tex_landscape = "\\usepackage[tex_landscape]{geometry}"
+latex_tex_thin_margins = "\\usepackage{geometry}\geometry{left=20mm, right=20mm, top=25mm, bottom=25mm}"
 
 tablefmt = "latex"
 
-def _encapsulate_latex_table(tex_str, create_landscape, create_thin_margins, create_long_table, create_lines):
+def _encapsulate_latex_table(tex_str, tex_lines, tex_long_table, tex_landscape, tex_thin_margins):
   latex = min_latex_start
-  if create_long_table:
+  if tex_long_table:
     tex_str = tex_str.replace("{tabular}", "{longtable}")
     latex += "\n" + latex_long_table_package
-  if create_landscape:
-    latex += "\n" + latex_create_landscape
-  if create_thin_margins:
-    latex += "\n" + latex_create_thin_margins
+  if tex_landscape:
+    latex += "\n" + latex_tex_landscape
+  if tex_thin_margins:
+    latex += "\n" + latex_tex_thin_margins
   latex += "\n" + min_latex_doc_start
-  if not create_long_table:
+  if not tex_long_table:
     latex += "\n" + latex_center_start
-  if create_lines:
+  if tex_lines:
     tex_str = tex_str.replace(r'\hline','').replace(r'\\',r'\\\hline')
   latex += "\n" + tex_str
-  if not create_long_table:
+  if not tex_long_table:
     latex += "\n" + latex_center_end
   return latex + "\n" + min_latex_end
 
 def _is_path(input):
   return "\r" not in input
 
-def _create_save_path(input, ext):
+def _tex_save_path(input, ext):
   # We assume that input is path to input and try and extract from that
   if not _is_path(input):
     raise Exception("No path was supplied or could be inferred.")
@@ -55,7 +55,7 @@ def _get_table_str(input):
 
 def _save_pdf(pdf, input, save_path):
   if save_path is None:
-    save_path = _create_save_path(input, ".pdf")
+    save_path = _tex_save_path(input, ".pdf")
   pdf.save_to(save_path)
 
 def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
@@ -108,29 +108,29 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
 
 def sv_to_tex_file(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                    has_header_gap=0, start_line=None, end_line=None,
-                   create_landscape=False, create_thin_margins=False, create_long_table=False, create_lines=False,
+                   tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False,
                    save_path=None):
   tex_str = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
                       has_header_gap, start_line, end_line)
   if save_path is None:
-    save_path = _create_save_path(input, ".tex")
+    save_path = _tex_save_path(input, ".tex")
   with open(save_path, 'w+') as f:
-    f.write(_encapsulate_latex_table(tex_str, create_landscape, create_thin_margins, create_long_table, create_lines))
+    f.write(_encapsulate_latex_table(tex_str, tex_lines, tex_long_table, tex_landscape, tex_thin_margins))
 
 def sv_to_pdf(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
               has_header_gap=0, start_line=None, end_line=None,
-              create_landscape=False, create_thin_margins=False, create_long_table=False, create_lines=False):
+              tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False):
   tex_str = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
                       has_header_gap, start_line, end_line)
-  return build_pdf(_encapsulate_latex_table(tex_str, create_landscape, create_thin_margins, create_long_table, create_lines))
+  return build_pdf(_encapsulate_latex_table(tex_str, tex_lines, tex_long_table, tex_landscape, tex_thin_margins))
 
 def sv_to_pdf_file(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                    has_header_gap=0, start_line=None, end_line=None,
-                   create_landscape=False, create_thin_margins=False, create_long_table=False, create_lines=False,
+                   tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False,
                    save_path=None):
   pdf = sv_to_pdf(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, has_header_gap,
                   start_line, end_line,
-                  create_landscape, create_thin_margins, create_long_table, create_lines)
+                  tex_lines, tex_long_table, tex_landscape, tex_thin_margins)
   _save_pdf(pdf, input, save_path)
 
 def tex_to_pdf_file(input, save_path=None): 
