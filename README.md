@@ -1,5 +1,5 @@
 # tutil
-Tool to create different table formats (eg latex, html) from the same ascii table (eg csv, tsv). Also produces pdfs from asci tables.
+Tool to create different table formats (eg latex, html) from the same ascii table (eg csv, tsv). Also produces pdfs from ascii tables.
 
 ## Installation
 
