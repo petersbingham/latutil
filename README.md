@@ -1,5 +1,5 @@
 # tutil
-Simple latex tools and command line interface.
+Tool to create different table formats (eg latex, html) from the same ascii table (eg csv, tsv). Also produces pdfs from ascii tables.
 
 ## Installation
 
@@ -17,4 +17,8 @@ Third party packages:
 
 ## Usage
 
-Look at the functions in the \_\_init\_\_.py.
+Can be used as a python package (in which case look in the \_\_init\_\_.py) or from the command line, in which case type:
+
+    python -m tutil -h
+
+for instructions.
