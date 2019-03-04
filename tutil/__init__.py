@@ -12,7 +12,7 @@ min_latex_end = "\\end{document}"
 latex_center_start = "\\begin{table}{}\n\\centering"
 latex_center_end = "\\end{table}"
 
-latex_tex_landscape = "\\usepackage[tex_landscape]{geometry}"
+latex_tex_landscape = "\\usepackage[landscape]{geometry}"
 latex_tex_thin_margins = "\\usepackage{geometry}\geometry{left=20mm, right=20mm, top=25mm, bottom=25mm}"
 
 tablefmt = "latex"
