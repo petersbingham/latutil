@@ -91,9 +91,9 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
         cell_poss_start.append(last_val+split_input_sub.index(title))
         cell_poss_end.append(last_val+split_input_sub.index(title)+len(title))
         if left_aligned_to_header:
-           cell_poss = cell_poss_start
+          cell_poss = cell_poss_start
         else:
-           cell_poss = cell_poss_end
+          cell_poss = cell_poss_end
       body = []
       for line in split_input[1+has_header_gap:]:
         body.append([])
