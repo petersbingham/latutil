@@ -79,12 +79,21 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
     if not left_aligned_to_header and not right_aligned_to_header:
       body = [line.split(delimiter) for line in split_input[1+has_header_gap:]]
     else:
-      cell_poss = []
+      cell_poss_start = []
+      cell_poss_end = []
       for title in header:
+        if len(cell_poss_end) > 0:
+          last_val = cell_poss_end[len(cell_poss)-1]
+          split_input_sub = split_input[0][last_val:] 
+        else:
+          last_val = 0
+          split_input_sub = split_input[0]
+        cell_poss_start.append(last_val+split_input_sub.index(title))
+        cell_poss_end.append(last_val+split_input_sub.index(title)+len(title))
         if left_aligned_to_header:
-          cell_poss.append(split_input[0].index(title)+1)
-        else: 
-          cell_poss.append(split_input[0].index(title)+len(title)+1)
+           cell_poss = cell_poss_start
+        else:
+           cell_poss = cell_poss_end
       body = []
       for line in split_input[1+has_header_gap:]:
         body.append([])
