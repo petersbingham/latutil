@@ -51,5 +51,5 @@ if 'sv' == args.input_type:
     tutil.sv_to_tex_file(*arg_list)
   if 'pdf' in args.output_type:
     tutil.sv_to_pdf_file(*arg_list)
-elif 'tex' == arg.input_type:
+elif 'tex' == args.input_type:
   tutil.tex_to_pdf_file(args.input_file)
