@@ -16,6 +16,4 @@ class TestFiles(unittest.TestCase):
       self.assertTrue(os.path.exists("./test.pdf"))
 
 if __name__ == "__main__":
-    #Just for debug
-    b = test_history()
-    b.runTest()
+    unittest.main()
