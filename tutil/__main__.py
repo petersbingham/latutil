@@ -14,6 +14,8 @@ parser.add_argument('output_type', help='Name/s of output types to generate. Str
 parser.add_argument('input_file', help='input file containing the ascii table to convert.')
 parser.add_argument('--input_type', '-t', help='input table type. Default is sv (separated values).',
                     nargs='?', default='sv', choices=['sv', 'tex'], type=str)
+parser.add_argument('--caption', '-c', help='set the table caption.',
+                    nargs='?', default=None)
 parser.add_argument('--delimiter', '-d', help='set the column delimiter. Default is whitespace.',
                     nargs='?', default=None)
 parser.add_argument('--has_header', '-H', help='flag for first line in table file describing header.',
@@ -44,7 +46,7 @@ if args.tex_raw:
   tutil.tablefmt = 'latex_raw'
 
 if 'sv' == args.input_type:
-  arg_list = (args.input_file, args.delimiter, args.header_gap_size, args.left_aligned_to_header, args.right_aligned_to_header,
+  arg_list = (args.input_file, args.caption, args.delimiter, args.header_gap_size, args.left_aligned_to_header, args.right_aligned_to_header,
               args.header_gap_size, args.start_line, args.end_line,
               args.tex_lines_horz, args.tex_big_table, args.tex_landscape, args.tex_thin_margins)
   if 'tex' in args.output_type:
