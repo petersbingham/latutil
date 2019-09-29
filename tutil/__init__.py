@@ -35,7 +35,11 @@ def _encapsulate_latex_table(tex_str, caption, tex_lines, tex_long_table, tex_la
     tex_str = tex_str.replace(r'\hline','').replace(r'\\',r'\\\hline')
   latex += "\n" + tex_str
   if caption is not None:
-    latex += "\n" + latex_caption + caption + "}"
+    cap_str = "\n" + latex_caption + caption + "}"
+    if not tex_long_table:
+      latex += cap_str
+    else:
+      latex = latex.replace("\\end{longtable}", cap_str+"\n\\end{longtable}")
   if not tex_long_table:
     latex += "\n" + latex_center_end
   return latex + "\n" + min_latex_end
