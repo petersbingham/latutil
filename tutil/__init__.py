@@ -20,10 +20,10 @@ latex_tex_thin_margins = "\\usepackage{geometry}\geometry{left=20mm, right=20mm,
 
 tablefmt = "latex"
 
-def _encapsulate_latex_table(tex_str, caption, name, tex_lines, tex_long_table, tex_landscape, tex_thin_margins):
+def _encapsulate_latex_table(tab_tex_strs, caption, name, number_label_columns, tex_lines, tex_long_table, tex_landscape, tex_thin_margins):
   latex = min_latex_start
   if tex_long_table:
-    tex_str = tex_str.replace("{tabular}", "{longtable}")
+    tab_tex_strs = [t.replace("{tabular}", "{longtable}") for t in tab_tex_strs]
     latex += "\n" + latex_long_table_package
   if tex_landscape:
     latex += "\n" + latex_tex_landscape
@@ -35,8 +35,25 @@ def _encapsulate_latex_table(tex_str, caption, name, tex_lines, tex_long_table, 
   if not tex_long_table:
     latex += "\n" + latex_center_start
   if tex_lines:
-    tex_str = tex_str.replace(r'\hline','').replace(r'\\',r'\\\hline')
-  latex += "\n" + tex_str
+    tab_tex_strs = [t.replace(r'\hline','').replace(r'\\',r'\\\hline') for t in tab_tex_strs]
+  elif number_label_columns>0:
+    # Labels define grouping if their value is empty (grouped with the row above)
+    new_tab_tex_strs = []
+    for t in tab_tex_strs:
+      s = t.split('\n')
+      if any([r.strip()[0]=='&' for r in s[:-1]]):
+        first_cell_empty_last = None
+        for i,r in enumerate(s):
+          first_cell_empty = '&' in r and r.strip()[0]=='&'
+          if first_cell_empty_last and not first_cell_empty:
+            s[i-1] = s[i-1].replace(r'\hline','').replace(r'\\',r'\\\hline')
+          first_cell_empty_last = first_cell_empty
+      new_tab_tex_strs.append('\n'.join(s))
+    tab_tex_strs = new_tab_tex_strs
+  for i,t in enumerate(tab_tex_strs):
+    latex += "\n" + t
+    if i != len(tab_tex_strs)-1:
+      latex += "\n\\newpage"
   if caption is not None:
     cap_str = "\n" + latex_caption + caption + "}"
     if not tex_long_table:
@@ -69,15 +86,14 @@ def _save_pdf(pdf, input, save_path):
     save_path = _tex_save_path(input, ".pdf")
   pdf.save_to(save_path)
 
-def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-              has_header_gap=0, start_line=None, end_line=None):
+def get_tables(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
+               header_gap_size=0, start_line=None, end_line=None):
   input = _get_table_str(input)
 
   sep = "\n"
   if "\r\n" in input:
     sep = "\r\n"
   split_input = input.split(sep)
-
   if start_line is not None and end_line is not None:
     split_input = split_input[start_line-1:end_line]
   elif start_line is not None:
@@ -85,10 +101,13 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
   elif end_line is not None:
     split_input = split_input[:end_line]
 
+  #clesn
+  split_input = [s for s in split_input if len(s.strip())>0]
+
   if has_header:
     header = split_input[0].split(delimiter)
     if not left_aligned_to_header and not right_aligned_to_header:
-      body = [line.split(delimiter) for line in split_input[1+has_header_gap:]]
+      body = [line.split(delimiter) for line in split_input[1+header_gap_size:]]
     else:
       cell_poss_start = []
       cell_poss_end = []
@@ -106,7 +125,7 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
         else:
           cell_poss = cell_poss_end
       body = []
-      for line in split_input[1+has_header_gap:]:
+      for line in split_input[1+header_gap_size:]:
         body.append([])
         for i in range(len(cell_poss)):
           if left_aligned_to_header:
@@ -120,36 +139,80 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
             else:
               val = line[cell_poss[i-1]:cell_poss[i]]
           body[len(body)-1].append(val.strip())
-    table = tabulate(body, header, tablefmt=tablefmt)
   else:
+    header = None
     body = [line.split(delimiter) for line in split_input]
-    table = tabulate(body, tablefmt=tablefmt)
-  return table
+  return header, body
+
+def split_table(header, body, number_label_columns, number_table_splits):
+  header_lbls = header[:number_label_columns]
+  body_lbls = [row[:number_label_columns] for row in body]
+  headers = []
+  bodies = []
+  num_tables = number_table_splits + 1
+  val_cols_per_table = len(header[number_label_columns:]) / num_tables
+  rem_cols_per_table = len(header[number_label_columns:]) % num_tables
+  start_ind = None
+  for i in range(num_tables):
+    if start_ind is None:
+      start_ind = number_label_columns 
+    else:
+      start_ind = end_ind
+    end_ind = start_ind + val_cols_per_table
+    if rem_cols_per_table > 0:
+      end_ind += 1
+      rem_cols_per_table -= 1
+    headers.append(header_lbls + header[start_ind: end_ind])
+    tab_body = []
+    for lbls, row in zip(body_lbls, body):
+      tab_body.append(lbls + row[start_ind: end_ind])
+    bodies.append(tab_body)
+  return headers, bodies
+
+def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
+              header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, number_table_splits=0):
+  header, body = get_tables(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
+  if number_table_splits > 0:
+    headers, bodies = split_table(header, body, number_label_columns, number_table_splits)
+  else:
+    headers, bodies = [header], [body]
+
+  tab_tex_strs = []
+  for h, b in zip(headers, bodies):
+    if h is None: 
+      tab_tex_strs.append(tabulate(b, tablefmt=tablefmt))
+    else:
+      tab_tex_strs.append(tabulate(b, h, tablefmt=tablefmt))
+  return tab_tex_strs
 
 def sv_to_tex_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-                   has_header_gap=0, start_line=None, end_line=None,
+                   header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
+                   number_table_splits=0, 
                    tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False,
                    save_path=None):
-  tex_str = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
-                      has_header_gap, start_line, end_line)
+  tab_tex_strs = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
+                           header_gap_size, number_label_columns, start_line, end_line, number_table_splits)
   if save_path is None:
     save_path = _tex_save_path(input, ".tex")
   with open(save_path, 'w+') as f:
-    f.write(_encapsulate_latex_table(tex_str, caption, name, tex_lines, tex_long_table, tex_landscape, tex_thin_margins))
+    f.write(_encapsulate_latex_table(tab_tex_strs, caption, name, number_label_columns, tex_lines, tex_long_table, tex_landscape, tex_thin_margins))
 
 def sv_to_pdf(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-              has_header_gap=0, start_line=None, end_line=None,
+              header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
+              number_table_splits=0, 
               tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False):
   tex_str = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
-                      has_header_gap, start_line, end_line)
-  return build_pdf(_encapsulate_latex_table(tex_str, caption, name, tex_lines, tex_long_table, tex_landscape, tex_thin_margins))
+                      header_gap_size, number_label_columns, start_line, end_line, number_table_splits)
+  return build_pdf(_encapsulate_latex_table(tex_str, caption, name, number_label_columns, tex_lines, tex_long_table, tex_landscape, tex_thin_margins))
 
 def sv_to_pdf_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-                   has_header_gap=0, start_line=None, end_line=None,
+                   header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
+                   number_table_splits=0,
                    tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False,
                    save_path=None):
-  pdf = sv_to_pdf(input, caption, name, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, has_header_gap,
+  pdf = sv_to_pdf(input, caption, name, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, number_label_columns,
                   start_line, end_line,
+                  number_table_splits, 
                   tex_lines, tex_long_table, tex_landscape, tex_thin_margins)
   _save_pdf(pdf, input, save_path)
 

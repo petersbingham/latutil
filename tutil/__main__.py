@@ -28,10 +28,14 @@ parser.add_argument('--right_aligned_to_header', '-r', help='as for left_aligned
                     action='store_true')
 parser.add_argument('--header_gap_size', '-g', help='set the number of lines to ignore between the header and first row. Default is zero',
                     nargs='?', default=0, type=int)
+parser.add_argument('--num_lbl_cols', '-C', help='set the number of columns used as labels. Default is zero',
+                    nargs='?', default=0, type=int)
 parser.add_argument('--start_line', '-s', help='set the first line of the table. Default is start of file.',
                     nargs='?', default=None, type=int)
 parser.add_argument('--end_line', '-e', help='set the last line of the table. Default is end of file.',
                     nargs='?', default=None, type=int)
+parser.add_argument('--num_table_splits', '-S', help='set the number of times the table should be split. Columns labels are include in each split table. Default is zero',
+                    nargs='?', default=0, type=int)
 parser.add_argument('--tex_lines_horz', '-z', help='flag to add horizontal lines separating the rows.',
                     action='store_true')
 parser.add_argument('--tex_raw', '-R', help='flag to not escape special latex characters in created tex.',
@@ -49,7 +53,7 @@ if args.tex_raw:
 
 if 'sv' == args.input_type:
   arg_list = (args.input_file, args.caption, args.name, args.delimiter, args.header_gap_size, args.left_aligned_to_header,
-              args.right_aligned_to_header, args.header_gap_size, args.start_line, args.end_line,
+              args.right_aligned_to_header, args.header_gap_size, args.num_lbl_cols, args.start_line, args.end_line, args.num_table_splits,
               args.tex_lines_horz, args.tex_big_table, args.tex_landscape, args.tex_thin_margins)
   if 'tex' in args.output_type:
     tutil.sv_to_tex_file(*arg_list)
