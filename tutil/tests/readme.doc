@@ -14,3 +14,4 @@ In 2, 3 & 4 the tables will be truncated, because the tex_big_table_options has 
 
 5: python -m tutil pdf ./test.tsv --end_line 16 --input_type sv --tex_raw
 6: python -m tutil pdf ./target-compare.out --input_type sv --tex_landscape --tex_thin_margins --tex_big_table --tex_raw --right_aligned_to_header --header_gap_size 1 --name "Bonds" --tex_thin_margins --num_lbl_cols 2 --num_table_splits 2
+7: python -m tutil pdf ./target-compare.out --input_type sv --tex_landscape --tex_thin_margins --tex_big_table --tex_raw --right_aligned_to_header --header_gap_size 1 --name "Bonds" --tex_thin_margins --num_lbl_cols 2 --num_table_splits 2 --transpose

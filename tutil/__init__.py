@@ -144,6 +144,35 @@ def get_tables(input, delimiter=None, has_header=True, left_aligned_to_header=Fa
     body = [line.split(delimiter) for line in split_input]
   return header, body
 
+def transpose_table(header, body, number_label_columns):
+  num_rows = len(body[0]) - number_label_columns
+  num_cols = len(body)
+  mod = 0
+  if header is not None:
+    mod = 1
+    num_cols += 1
+
+  new_body = [[0 for i in range(num_cols)] for j in range(num_rows)]
+  for i in range(num_rows):
+    for j in range(num_cols):
+      if j==0 and header is not None:
+        new_body[i][0] = header[number_label_columns + i]
+      else:
+        new_body[i][j] = body[j - mod][i + number_label_columns]
+  new_header = None
+  if number_label_columns > 0:
+    new_header = []
+    if header is not None:
+      new_header.append('')
+    lbls = ['' for _ in range(number_label_columns)]
+    for row in body:
+      for i in range(number_label_columns):
+        if row[i] != '':
+          lbls[i] = row[i]
+      new_header.append(' '.join(lbls))
+
+  return new_header, new_body
+
 def split_table(header, body, number_label_columns, number_table_splits):
   header_lbls = header[:number_label_columns]
   body_lbls = [row[:number_label_columns] for row in body]
@@ -170,8 +199,14 @@ def split_table(header, body, number_label_columns, number_table_splits):
   return headers, bodies
 
 def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-              header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, number_table_splits=0):
+              header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, number_table_splits=0):
   header, body = get_tables(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
+  if transpose:
+    trans_has_lbl_col = header is not None
+    header, body = transpose_table(header, body, number_label_columns)
+    number_label_columns = 0
+    if trans_has_lbl_col:
+      number_label_cols = 1
   if number_table_splits > 0:
     headers, bodies = split_table(header, body, number_label_columns, number_table_splits)
   else:
@@ -187,11 +222,11 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
 
 def sv_to_tex_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                    header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
-                   number_table_splits=0, 
+                   transpose=False, number_table_splits=0, 
                    tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False,
                    save_path=None):
   tab_tex_strs = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
-                           header_gap_size, number_label_columns, start_line, end_line, number_table_splits)
+                           header_gap_size, number_label_columns, start_line, end_line, transpose, number_table_splits)
   if save_path is None:
     save_path = _tex_save_path(input, ".tex")
   with open(save_path, 'w+') as f:
@@ -199,20 +234,20 @@ def sv_to_tex_file(input, caption=None, name=None, delimiter=None, has_header=Tr
 
 def sv_to_pdf(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
               header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
-              number_table_splits=0, 
+              transpose=False, number_table_splits=0, 
               tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False):
   tex_str = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
-                      header_gap_size, number_label_columns, start_line, end_line, number_table_splits)
+                      header_gap_size, number_label_columns, start_line, end_line, transpose, number_table_splits)
   return build_pdf(_encapsulate_latex_table(tex_str, caption, name, number_label_columns, tex_lines, tex_long_table, tex_landscape, tex_thin_margins))
 
 def sv_to_pdf_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                    header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
-                   number_table_splits=0,
+                   transpose=False, number_table_splits=0,
                    tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False,
                    save_path=None):
   pdf = sv_to_pdf(input, caption, name, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, number_label_columns,
                   start_line, end_line,
-                  number_table_splits, 
+                  transpose, number_table_splits, 
                   tex_lines, tex_long_table, tex_landscape, tex_thin_margins)
   _save_pdf(pdf, input, save_path)
 
