@@ -12,9 +12,9 @@ class TestFiles(unittest.TestCase):
        tutil.sv_to_tex_file("./test.csv", has_header=True, delimiter=",")
        self.assertTrue(filecmp.cmp("./test.tex", "./test-exp.tex"))
      
-#    def test_sv_to_tex_tran(self):
-#       tutil.sv_to_tex_file("./test.csv", has_header=True, delimiter=",", transpose=True)
-#       self.assertTrue(filecmp.cmp("./test.tex", "./test-tran-exp.tex"))
+    def test_sv_to_tex_tran(self):
+       tutil.sv_to_tex_file("./test.csv", has_header=True, delimiter=",", transpose=True)
+       self.assertTrue(filecmp.cmp("./test.tex", "./test-tran-exp.tex"))
 
     def test_sv_to_pdf(self):
       tutil.sv_to_pdf_file("./test.csv", delimiter=",")
