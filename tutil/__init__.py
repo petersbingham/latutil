@@ -18,7 +18,7 @@ latex_caption = "\\caption{"
 latex_tex_landscape = "\\usepackage[landscape]{geometry}"
 latex_tex_thin_margins = "\\usepackage{geometry}\geometry{left=20mm, right=20mm, top=25mm, bottom=25mm}"
 
-tablefmt = "latex"
+latextablefmt = "latex"
 
 def _encapsulate_latex_table(tab_tex_strs, caption, name, number_label_columns, tex_lines, tex_long_table, tex_landscape, tex_thin_margins):
   latex = min_latex_start
@@ -67,7 +67,7 @@ def _encapsulate_latex_table(tab_tex_strs, caption, name, number_label_columns, 
 def _is_path(input):
   return "\r" not in input
 
-def _tex_save_path(input, ext):
+def _save_path(input, ext):
   # We assume that input is path to input and try and extract from that
   if not _is_path(input):
     raise Exception("No path was supplied or could be inferred.")
@@ -83,10 +83,10 @@ def _get_table_str(input):
 
 def _save_pdf(pdf, input, save_path):
   if save_path is None:
-    save_path = _tex_save_path(input, ".pdf")
+    save_path = _save_path(input, ".pdf")
   pdf.save_to(save_path)
 
-def get_tables(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
+def get_table(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                header_gap_size=0, start_line=None, end_line=None):
   input = _get_table_str(input)
 
@@ -200,7 +200,7 @@ def split_table(header, body, number_label_columns, number_table_splits):
 
 def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
               header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, number_table_splits=0):
-  header, body = get_tables(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
+  header, body = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
   if transpose:
     trans_has_lbl_col = header is not None
     header, body = transpose_table(header, body, number_label_columns)
@@ -215,10 +215,28 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
   tab_tex_strs = []
   for h, b in zip(headers, bodies):
     if h is None: 
-      tab_tex_strs.append(tabulate(b, tablefmt=tablefmt))
+      tab_tex_strs.append(tabulate(b, tablefmt=latextablefmt))
     else:
-      tab_tex_strs.append(tabulate(b, h, tablefmt=tablefmt))
+      tab_tex_strs.append(tabulate(b, h, tablefmt=latextablefmt))
   return tab_tex_strs
+
+def sv_to_gnuplot(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
+                  header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False):
+
+  header, body = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
+  if transpose:
+    trans_has_lbl_col = header is not None
+    header, body = transpose_table(header, body, number_label_columns)
+    number_label_columns = 0
+    if trans_has_lbl_col:
+      number_label_columns = 1
+
+  for i in range(len(body)):
+    for j in range(len(body[i]) - number_label_columns):
+      if body[i][j + number_label_columns] == '':
+        body[i][j + number_label_columns] = '?'
+
+  return tabulate(body, header, tablefmt='plain')
 
 def sv_to_tex_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                    header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
@@ -228,7 +246,7 @@ def sv_to_tex_file(input, caption=None, name=None, delimiter=None, has_header=Tr
   tab_tex_strs = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
                            header_gap_size, number_label_columns, start_line, end_line, transpose, number_table_splits)
   if save_path is None:
-    save_path = _tex_save_path(input, ".tex")
+    save_path = _save_path(input, ".tex")
   with open(save_path, 'w+') as f:
     f.write(_encapsulate_latex_table(tab_tex_strs, caption, name, number_label_columns, tex_lines, tex_long_table, tex_landscape, tex_thin_margins))
 
@@ -256,3 +274,12 @@ def tex_to_pdf_file(input, save_path=None):
   pdf = build_pdf(tex_str)
   _save_pdf(pdf, input, save_path)
 
+def sv_to_gnuplot_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
+                       header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
+                       transpose=False, save_path=None):
+  gnuplot_str = sv_to_gnuplot(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
+                              header_gap_size, number_label_columns, start_line, end_line, transpose)
+  if save_path is None:
+    save_path = _save_path(input, ".dat")
+  with open(save_path, 'w+') as f:
+    f.write(gnuplot_str)

@@ -51,20 +51,25 @@ parser.add_argument('--tex_thin_margins', '-T', help='flag to create thin margin
 args = parser.parse_args()
 
 if args.tex_raw:
-  tutil.tablefmt = 'latex_raw'
+  tutil.latextablefmt = 'latex_raw'
 
 has_header = False
 if args.has_header or args.header_gap_size > 0:
   has_header = True
 
 if 'sv' == args.input_type:
-  arg_list = (args.input_file, args.caption, args.name, args.delimiter, has_header, args.left_aligned_to_header,
+  arg_list = [args.input_file, args.caption, args.name, args.delimiter, has_header, args.left_aligned_to_header,
               args.right_aligned_to_header, args.header_gap_size, args.num_lbl_cols, args.start_line, args.end_line,
-              args.transpose, args.num_table_splits,
-              args.tex_lines_horz, args.tex_big_table, args.tex_landscape, args.tex_thin_margins)
-  if 'tex' in args.output_type:
-    tutil.sv_to_tex_file(*arg_list)
-  if 'pdf' in args.output_type:
-    tutil.sv_to_pdf_file(*arg_list)
+              args.transpose]
+  if 'plot' in args.output_type:
+    if 'gnuplot' in args.output_type:
+      tutil.sv_to_gnuplot_file(*arg_list)
+  else:
+    arg_list.extend([args.num_table_splits,
+                     args.tex_lines_horz, args.tex_big_table, args.tex_landscape, args.tex_thin_margins])
+    if 'tex' in args.output_type:
+      tutil.sv_to_tex_file(*arg_list)
+    elif 'pdf' in args.output_type:
+      tutil.sv_to_pdf_file(*arg_list)
 elif 'tex' == args.input_type:
   tutil.tex_to_pdf_file(args.input_file)
