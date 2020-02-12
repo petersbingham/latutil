@@ -206,7 +206,7 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
     header, body = transpose_table(header, body, number_label_columns)
     number_label_columns = 0
     if trans_has_lbl_col:
-      number_label_cols = 1
+      number_label_columns = 1
   if number_table_splits > 0:
     headers, bodies = split_table(header, body, number_label_columns, number_table_splits)
   else:
