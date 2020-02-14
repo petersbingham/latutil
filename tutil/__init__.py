@@ -1,5 +1,6 @@
 import csv
 import os
+import splot
 
 from latex import build_pdf
 from tabulate import tabulate
@@ -236,7 +237,36 @@ def sv_to_gnuplot(input, delimiter=None, has_header=True, left_aligned_to_header
       if body[i][j + number_label_columns] == '':
         body[i][j + number_label_columns] = '?'
 
-  return tabulate(body, header, tablefmt='plain')
+  new_header = []
+  for h in header:
+    if h == '':
+      new_header.append('-')
+    else:
+      new_header.append(h.replace(' ', '-').replace('\\','').replace('^','').replace('_','').replace('{','').replace('}','').replace('$',''))
+
+  return tabulate(body, new_header, tablefmt='plain')
+
+def sv_to_splot(input, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
+                header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, plot_command='1:*',
+                interactive=False, save_paths=None):
+
+  header, body = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
+  if transpose:
+    trans_has_lbl_col = header is not None
+    header, body = transpose_table(header, body, number_label_columns)
+    number_label_columns = 0
+    if trans_has_lbl_col:
+      number_label_columns = 1
+
+  for i in range(len(body)):
+    for j in range(len(body[i]) - number_label_columns):
+      if body[i][j + number_label_columns] == '':
+        body[i][j + number_label_columns] = None
+
+  if plot_command != 'h:*':
+    raise Exception('Plot command {} not supported.'.format(plot_command))
+
+  splot.scatter(header[number_label_columns:], [b[number_label_columns:] for b in body], title=name, display=interactive, path=save_paths)
 
 def sv_to_tex_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                    header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
@@ -283,3 +313,12 @@ def sv_to_gnuplot_file(input, caption=None, name=None, delimiter=None, has_heade
     save_path = _save_path(input, ".dat")
   with open(save_path, 'w+') as f:
     f.write(gnuplot_str)
+
+def sv_to_splot_files(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
+                      header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
+                      transpose=False, plot_command='1:*', interactive=False, save_path=None):
+  if save_path is None:
+    save_paths = [_save_path(input, ".svg"), _save_path(input, ".png")]
+  gnuplot_str = sv_to_splot(input, name, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
+                            header_gap_size, number_label_columns, start_line, end_line, transpose, plot_command, interactive, save_paths)
+

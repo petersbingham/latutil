@@ -48,6 +48,10 @@ parser.add_argument('--tex_landscape', '-L', help='flag to create a landscape or
                     action='store_true')
 parser.add_argument('--tex_thin_margins', '-T', help='flag to create thin margined tex.',
                     action='store_true')
+parser.add_argument('--plot_command', '-p', help='command to specify the plot. eg 1:* plots column as x axis against all others.',
+                    nargs='?', default=None)
+parser.add_argument('--plot_interactive', '-i', help='flag to show interactive plot.',
+                    action='store_true')
 args = parser.parse_args()
 
 if args.tex_raw:
@@ -64,6 +68,9 @@ if 'sv' == args.input_type:
   if 'plot' in args.output_type:
     if 'gnuplot' in args.output_type:
       tutil.sv_to_gnuplot_file(*arg_list)
+    elif 'splot' == args.output_type:
+      arg_list.extend([args.plot_command, args.plot_interactive])
+      tutil.sv_to_splot_files(*arg_list)
   else:
     arg_list.extend([args.num_table_splits,
                      args.tex_lines_horz, args.tex_big_table, args.tex_landscape, args.tex_thin_margins])
