@@ -3,7 +3,6 @@
 from distutils.core import setup
 import os
 import shutil
-shutil.copy('README.md', 'tutil/README.md')
 
 dir_setup = os.path.dirname(os.path.realpath(__file__))
 with open(os.path.join(dir_setup, 'tutil', 'release.py')) as f:
