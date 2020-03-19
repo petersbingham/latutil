@@ -50,6 +50,8 @@ parser.add_argument('--tex_thin_margins', '-T', help='flag to create thin margin
                     action='store_true')
 parser.add_argument('--plot_command', '-p', help='command to specify the plot. eg 1:* plots column as x axis against all others.',
                     nargs='?', default=None)
+parser.add_argument('--plot_parameters', '-P', help='Plot config options: img width, img height, legend spacing, label font size, legend font size.',
+                    nargs='+', type=float, default=[20, 15, 0.05, 14, 6])
 parser.add_argument('--plot_interactive', '-i', help='flag to show interactive plot.',
                     action='store_true')
 args = parser.parse_args()
@@ -69,7 +71,7 @@ if 'sv' == args.input_type:
     if 'gnuplot' in args.output_type:
       tutil.sv_to_gnuplot_file(*arg_list)
     elif 'splot' == args.output_type:
-      arg_list.extend([args.plot_command, args.plot_interactive])
+      arg_list.extend([args.plot_command, args.plot_interactive, args.plot_parameters])
       tutil.sv_to_splot_files(*arg_list)
   else:
     arg_list.extend([args.num_table_splits,

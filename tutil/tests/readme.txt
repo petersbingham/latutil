@@ -4,7 +4,7 @@ Unit tests are defined in test.py executed with run_tests.sh. This tests that pd
 
 # CLI tests
 
-The testl.align and testl2.align are designed to check tex and pdf construction for tables that are left alighned on header. Use:
+The testl.align and testl2.align are designed to check tex and pdf construction for tables that are left aligned on header. Use:
 1: python -m tutil pdf ./testl.align --start_line 25 --end_line 99 --input_type sv --tex_landscape --tex_thin_margins --tex_big_table --tex_raw --left_aligned_to_header --header_gap_size 1 --tex_thin_margins
 2: python -m tutil pdf ./testl2.align --start_line 25 --end_line 99 --input_type sv --tex_raw --left_aligned_to_header --header_gap_size 1 --tex_thin_margins
 3: python -m tutil pdf ./testr.align --start_line 25 --end_line 99 --input_type sv --tex_raw --right_aligned_to_header --header_gap_size 1 --tex_thin_margins

@@ -21,6 +21,8 @@ latex_tex_thin_margins = "\\usepackage{geometry}\geometry{left=20mm, right=20mm,
 
 latextablefmt = "latex"
 
+default_plt_cmd = 'h:*'
+
 def _encapsulate_latex_table(tab_tex_strs, caption, name, number_label_columns, tex_lines, tex_long_table, tex_landscape, tex_thin_margins):
   latex = min_latex_start
   if tex_long_table:
@@ -102,7 +104,7 @@ def get_table(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
   elif end_line is not None:
     split_input = split_input[:end_line]
 
-  #clesn
+  #clean
   split_input = [s for s in split_input if len(s.strip())>0]
 
   if has_header:
@@ -145,6 +147,18 @@ def get_table(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
     body = [line.split(delimiter) for line in split_input]
   return header, body
 
+def amalgamate_column_labels(body, number_label_columns):
+  amal_lbls = None
+  if number_label_columns > 0:
+    amal_lbls = []
+    lbls = ['' for _ in range(number_label_columns)]
+    for row in body:
+      for i in range(number_label_columns):
+        if row[i] != '':
+          lbls[i] = row[i]
+      amal_lbls.append(' '.join(lbls))
+  return amal_lbls
+
 def transpose_table(header, body, number_label_columns):
   num_rows = len(body[0]) - number_label_columns
   num_cols = len(body)
@@ -160,17 +174,10 @@ def transpose_table(header, body, number_label_columns):
         new_body[i][0] = header[number_label_columns + i]
       else:
         new_body[i][j] = body[j - mod][i + number_label_columns]
-  new_header = None
-  if number_label_columns > 0:
-    new_header = []
-    if header is not None:
-      new_header.append('')
-    lbls = ['' for _ in range(number_label_columns)]
-    for row in body:
-      for i in range(number_label_columns):
-        if row[i] != '':
-          lbls[i] = row[i]
-      new_header.append(' '.join(lbls))
+
+  new_header = amalgamate_column_labels(body, number_label_columns)
+  if header is not None and new_header is not None:
+    new_header = [''] + new_header
 
   return new_header, new_body
 
@@ -247,8 +254,12 @@ def sv_to_gnuplot(input, delimiter=None, has_header=True, left_aligned_to_header
   return tabulate(body, new_header, tablefmt='plain')
 
 def sv_to_splot(input, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-                header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, plot_command='1:*',
-                interactive=False, save_paths=None):
+                header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, plot_command=None,
+                interactive=False, plot_parameters=None, save_paths=None):
+  if plot_command is None:
+    plot_command = default_plt_cmd
+  if plot_parameters is None:
+    plot_parameters = [20, 15, 0.05, 14, 6]
 
   header, body = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
   if transpose:
@@ -263,10 +274,32 @@ def sv_to_splot(input, name=None, delimiter=None, has_header=True, left_aligned_
       if body[i][j + number_label_columns] == '':
         body[i][j + number_label_columns] = None
 
-  if plot_command != 'h:*':
+  plt_cmd_spt = plot_command.split(':')
+  if plt_cmd_spt[0] != 'h':
     raise Exception('Plot command {} not supported.'.format(plot_command))
 
-  splot.scatter(header[number_label_columns:], [b[number_label_columns:] for b in body], title=name, display=interactive, path=save_paths)
+  legend = amalgamate_column_labels(body, number_label_columns)
+  plt_header = header[number_label_columns:]
+  plt_body = [b[number_label_columns:] for b in body]
+  if plt_cmd_spt[1] != '*':
+    if ',' in plt_cmd_spt[1] and '->' in plt_cmd_spt[1]:
+      raise Exception('Plot command {} not supported.'.format(plot_command))
+    else:
+      if ',' in plt_cmd_spt[1]:
+        indices = eval('[' + plt_cmd_spt[1] + ']')
+      elif '->' in plt_cmd_spt[1]:
+        plt_rng_spt = plt_cmd_spt[1].split('->')
+        indices = range(int(plt_rng_spt[0]), int(plt_rng_spt[1])+1)
+      legend = [legend[i] for i in range(len(legend)) if i in indices]
+      plt_body = [plt_body[i] for i in range(len(plt_body)) if i in indices]
+
+  splot.place_legend_outside(15)
+  splot.set_img_size(plot_parameters[0], plot_parameters[1])
+  splot.set_legend_spacing(plot_parameters[2])
+  splot.set_font_size(plot_parameters[3], plot_parameters[4])
+  if name is None:
+    name = ''
+  splot.scatter(plt_header, plt_body, legend=legend, title=name, display=interactive, path=save_paths)
 
 def sv_to_tex_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                    header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
@@ -316,9 +349,9 @@ def sv_to_gnuplot_file(input, caption=None, name=None, delimiter=None, has_heade
 
 def sv_to_splot_files(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                       header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
-                      transpose=False, plot_command='1:*', interactive=False, save_path=None):
+                      transpose=False, plot_command=None, interactive=False, plot_parameters=None, save_path=None):
   if save_path is None:
     save_paths = [_save_path(input, ".svg"), _save_path(input, ".png")]
   gnuplot_str = sv_to_splot(input, name, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
-                            header_gap_size, number_label_columns, start_line, end_line, transpose, plot_command, interactive, save_paths)
+                            header_gap_size, number_label_columns, start_line, end_line, transpose, plot_command, interactive, plot_parameters, save_paths)
 
