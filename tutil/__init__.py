@@ -89,8 +89,30 @@ def _save_pdf(pdf, input, save_path):
     save_path = _save_path(input, ".pdf")
   pdf.save_to(save_path)
 
+def transpose_table(header, body, number_label_columns):
+  num_rows = len(body[0]) - number_label_columns
+  num_cols = len(body)
+  mod = 0
+  if header is not None:
+    mod = 1
+    num_cols += 1
+
+  new_body = [[0 for i in range(num_cols)] for j in range(num_rows)]
+  for i in range(num_rows):
+    for j in range(num_cols):
+      if j==0 and header is not None:
+        new_body[i][0] = header[number_label_columns + i]
+      else:
+        new_body[i][j] = body[j - mod][i + number_label_columns]
+
+  new_header = amalgamate_column_labels(body, number_label_columns)
+  if header is not None and new_header is not None:
+    new_header = [''] + new_header
+
+  return new_header, new_body
+
 def get_table(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-               header_gap_size=0, start_line=None, end_line=None):
+              header_gap_size=0, start_line=None, end_line=None, number_label_columns=0, transpose=False):
   input = _get_table_str(input)
 
   sep = "\n"
@@ -145,7 +167,15 @@ def get_table(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
   else:
     header = None
     body = [line.split(delimiter) for line in split_input]
-  return header, body
+    
+  if transpose:
+    trans_has_lbl_col = header is not None
+    header, body = transpose_table(header, body, number_label_columns)
+    number_label_columns = 0
+    if trans_has_lbl_col:
+      number_label_columns = 1
+
+  return header, body, number_label_columns
 
 def amalgamate_column_labels(body, number_label_columns):
   amal_lbls = None
@@ -158,28 +188,6 @@ def amalgamate_column_labels(body, number_label_columns):
           lbls[i] = row[i]
       amal_lbls.append(' '.join(lbls))
   return amal_lbls
-
-def transpose_table(header, body, number_label_columns):
-  num_rows = len(body[0]) - number_label_columns
-  num_cols = len(body)
-  mod = 0
-  if header is not None:
-    mod = 1
-    num_cols += 1
-
-  new_body = [[0 for i in range(num_cols)] for j in range(num_rows)]
-  for i in range(num_rows):
-    for j in range(num_cols):
-      if j==0 and header is not None:
-        new_body[i][0] = header[number_label_columns + i]
-      else:
-        new_body[i][j] = body[j - mod][i + number_label_columns]
-
-  new_header = amalgamate_column_labels(body, number_label_columns)
-  if header is not None and new_header is not None:
-    new_header = [''] + new_header
-
-  return new_header, new_body
 
 def split_table(header, body, number_label_columns, number_table_splits):
   header_lbls = header[:number_label_columns]
@@ -208,13 +216,8 @@ def split_table(header, body, number_label_columns, number_table_splits):
 
 def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
               header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, number_table_splits=0):
-  header, body = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
-  if transpose:
-    trans_has_lbl_col = header is not None
-    header, body = transpose_table(header, body, number_label_columns)
-    number_label_columns = 0
-    if trans_has_lbl_col:
-      number_label_columns = 1
+
+  header, body, number_label_columns = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line, number_label_columns, transpose)
   if number_table_splits > 0:
     headers, bodies = split_table(header, body, number_label_columns, number_table_splits)
   else:
@@ -231,13 +234,7 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
 def sv_to_gnuplot(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                   header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False):
 
-  header, body = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
-  if transpose:
-    trans_has_lbl_col = header is not None
-    header, body = transpose_table(header, body, number_label_columns)
-    number_label_columns = 0
-    if trans_has_lbl_col:
-      number_label_columns = 1
+  header, body, number_label_columns = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line, number_label_columns, transpose)
 
   for i in range(len(body)):
     for j in range(len(body[i]) - number_label_columns):
@@ -261,13 +258,7 @@ def sv_to_splot(input, name=None, delimiter=None, has_header=True, left_aligned_
   if plot_parameters is None:
     plot_parameters = [20, 15, 0.05, 14, 6]
 
-  header, body = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line)
-  if transpose:
-    trans_has_lbl_col = header is not None
-    header, body = transpose_table(header, body, number_label_columns)
-    number_label_columns = 0
-    if trans_has_lbl_col:
-      number_label_columns = 1
+  header, body, number_label_columns = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line, number_label_columns, transpose)
 
   for i in range(len(body)):
     for j in range(len(body[i]) - number_label_columns):
