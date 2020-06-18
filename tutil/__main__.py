@@ -38,6 +38,8 @@ parser.add_argument('--num_table_splits', '-S', help='set the number of times th
                     nargs='?', default=0, type=int)
 parser.add_argument('--transpose', '-f', help='flag to transpose table.',
                     action='store_true')
+parser.add_argument('--formula', '-F', help='command to modify the data. eg "+1" adds 1 to all data. "+[i][0]" adds the first value in each row to all other values in that row. Note requires enclosing "", to remove cli issues with minus signs.',
+                    nargs='?', default=None)
 parser.add_argument('--tex_lines_horz', '-z', help='flag to add horizontal lines separating the rows.',
                     action='store_true')
 parser.add_argument('--tex_raw', '-R', help='flag to not escape special latex characters in created tex.',
@@ -48,10 +50,8 @@ parser.add_argument('--tex_landscape', '-L', help='flag to create a landscape or
                     action='store_true')
 parser.add_argument('--tex_thin_margins', '-T', help='flag to create thin margined tex.',
                     action='store_true')
-parser.add_argument('--plot_command', '-p', help='command to specify the plot. eg 1:* plots column as x axis against all others.',
+parser.add_argument('--plot_command', '-p', help='command to specify the plot. eg 1:* plots column 1 as x axis against all others.',
                     nargs='?', default=None)
-parser.add_argument('--plot_parameters', '-P', help='Plot config options: img width, img height, legend spacing, label font size, legend font size.',
-                    nargs='+', type=float, default=[20, 15, 0.05, 14, 6])
 parser.add_argument('--plot_interactive', '-i', help='flag to show interactive plot.',
                     action='store_true')
 args = parser.parse_args()
@@ -66,12 +66,12 @@ if args.has_header or args.header_gap_size > 0:
 if 'sv' == args.input_type:
   arg_list = [args.input_file, args.caption, args.name, args.delimiter, has_header, args.left_aligned_to_header,
               args.right_aligned_to_header, args.header_gap_size, args.num_lbl_cols, args.start_line, args.end_line,
-              args.transpose]
+              args.transpose, args.formula]
   if 'plot' in args.output_type:
     if 'gnuplot' in args.output_type:
       tutil.sv_to_gnuplot_file(*arg_list)
     elif 'splot' == args.output_type:
-      arg_list.extend([args.plot_command, args.plot_interactive, args.plot_parameters])
+      arg_list.extend([args.plot_command, args.plot_interactive])
       tutil.sv_to_splot_files(*arg_list)
   else:
     arg_list.extend([args.num_table_splits,

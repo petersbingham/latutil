@@ -1,6 +1,8 @@
+import copy
 import csv
 import os
 import splot
+import re
 
 from latex import build_pdf
 from tabulate import tabulate
@@ -111,8 +113,57 @@ def transpose_table(header, body, number_label_columns):
 
   return new_header, new_body
 
+def _apply_op(body, i, j, op, val):
+  val = float(val)
+  try:
+    if op == '+':
+      return str(float(body[i][j]) + val)
+    if op == '-': # Fix issue with - as command line argument
+      return str(float(body[i][j]) - val)
+    if op == '*':
+      return str(float(body[i][j]) * val)
+    if op == '/':
+      return str(float(body[i][j]) / val)
+  except ValueError:
+    pass
+  return str(val)
+
+def _modify(body, op, mod, number_label_columns):
+  id = mod[0]
+  new_body = copy.deepcopy(body)
+  if id != '[':
+    val = mod
+    for i in range(len(body)):
+      for j in range(number_label_columns, len(body[i])):
+        new_body[i][j] = _apply_op(body, i, j, op, val)
+  else:
+    b1 = mod.index('[')
+    b2 = mod.index(']')
+    b3 = mod.rindex('[')
+    b4 = mod.rindex(']')
+    ir = mod[b1+1:b2]
+    ic = mod[b3+1:b4]
+    if ir == 'i':
+      # It's floating. Use the row value in that row
+      for i in range(len(body)):
+        val = body[i][number_label_columns+int(ic)]
+        for j in range(number_label_columns, len(body[i])):
+          new_body[i][j] = _apply_op(body, i, j, op, val)
+    if ic == 'i':
+      # It's floating. Use the column value in that row
+      for i in range(len(body)):
+        for j in range(number_label_columns, len(body[i])):
+          val = body[int(ir)][j]
+          new_body[i][j] = _apply_op(body, i, j, op, val)
+    else:
+      val = body[int(ir)][number_label_columns+int(ic)]
+      for i in range(len(body)):
+        for j in range(number_label_columns, len(body[i])):
+          new_body[i][j] = _apply_op(body, i, j, op, val)
+  return new_body
+
 def get_table(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-              header_gap_size=0, start_line=None, end_line=None, number_label_columns=0, transpose=False):
+              header_gap_size=0, start_line=None, end_line=None, number_label_columns=0, transpose=False, formula=None):
   input = _get_table_str(input)
 
   sep = "\n"
@@ -167,7 +218,14 @@ def get_table(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
   else:
     header = None
     body = [line.split(delimiter) for line in split_input]
-    
+
+  if formula is not None:
+    formula = formula[1:-1] # Remove enclising "" (required to prevent cli issues with minus signs)
+    mods = re.split('\+|-|\*|/', formula)
+    ops = [c for c in formula if c in ('+','-','*','/')]
+    for op, mod in zip(ops, mods[1:]):
+      body = _modify(body, op, mod, number_label_columns)
+
   if transpose:
     trans_has_lbl_col = header is not None
     header, body = transpose_table(header, body, number_label_columns)
@@ -215,9 +273,9 @@ def split_table(header, body, number_label_columns, number_table_splits):
   return headers, bodies
 
 def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-              header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, number_table_splits=0):
+              header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, formula=None, number_table_splits=0):
 
-  header, body, number_label_columns = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line, number_label_columns, transpose)
+  header, body, number_label_columns = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line, number_label_columns, transpose, formula)
   if number_table_splits > 0:
     headers, bodies = split_table(header, body, number_label_columns, number_table_splits)
   else:
@@ -232,9 +290,9 @@ def sv_to_tex(input, delimiter=None, has_header=True, left_aligned_to_header=Fal
   return tab_tex_strs
 
 def sv_to_gnuplot(input, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-                  header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False):
+                  header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, formula=None):
 
-  header, body, number_label_columns = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line, number_label_columns, transpose)
+  header, body, number_label_columns = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line, number_label_columns, transpose, formula)
 
   for i in range(len(body)):
     for j in range(len(body[i]) - number_label_columns):
@@ -251,14 +309,14 @@ def sv_to_gnuplot(input, delimiter=None, has_header=True, left_aligned_to_header
   return tabulate(body, new_header, tablefmt='plain')
 
 def sv_to_splot(input, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
-                header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, plot_command=None,
+                header_gap_size=0, number_label_columns=0, start_line=None, end_line=None, transpose=False, formula=None, plot_command=None,
                 interactive=False, plot_parameters=None, save_paths=None):
   if plot_command is None:
     plot_command = default_plt_cmd
   if plot_parameters is None:
     plot_parameters = [20, 15, 0.05, 14, 6]
 
-  header, body, number_label_columns = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line, number_label_columns, transpose)
+  header, body, number_label_columns = get_table(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, start_line, end_line, number_label_columns, transpose, formula)
 
   for i in range(len(body)):
     for j in range(len(body[i]) - number_label_columns):
@@ -294,11 +352,11 @@ def sv_to_splot(input, name=None, delimiter=None, has_header=True, left_aligned_
 
 def sv_to_tex_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                    header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
-                   transpose=False, number_table_splits=0, 
+                   transpose=False, formula=None, number_table_splits=0, 
                    tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False,
                    save_path=None):
   tab_tex_strs = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
-                           header_gap_size, number_label_columns, start_line, end_line, transpose, number_table_splits)
+                           header_gap_size, number_label_columns, start_line, end_line, transpose, formula, number_table_splits)
   if save_path is None:
     save_path = _save_path(input, ".tex")
   with open(save_path, 'w+') as f:
@@ -306,20 +364,20 @@ def sv_to_tex_file(input, caption=None, name=None, delimiter=None, has_header=Tr
 
 def sv_to_pdf(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
               header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
-              transpose=False, number_table_splits=0, 
+              transpose=False, formula=None, number_table_splits=0, 
               tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False):
   tex_str = sv_to_tex(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
-                      header_gap_size, number_label_columns, start_line, end_line, transpose, number_table_splits)
+                      header_gap_size, number_label_columns, start_line, end_line, transpose, formula, number_table_splits)
   return build_pdf(_encapsulate_latex_table(tex_str, caption, name, number_label_columns, tex_lines, tex_long_table, tex_landscape, tex_thin_margins))
 
 def sv_to_pdf_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                    header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
-                   transpose=False, number_table_splits=0,
+                   transpose=False, formula=None, number_table_splits=0,
                    tex_lines=False, tex_long_table=False, tex_landscape=False, tex_thin_margins=False,
                    save_path=None):
   pdf = sv_to_pdf(input, caption, name, delimiter, has_header, left_aligned_to_header, right_aligned_to_header, header_gap_size, number_label_columns,
                   start_line, end_line,
-                  transpose, number_table_splits, 
+                  transpose, formula, number_table_splits, 
                   tex_lines, tex_long_table, tex_landscape, tex_thin_margins)
   _save_pdf(pdf, input, save_path)
 
@@ -330,9 +388,9 @@ def tex_to_pdf_file(input, save_path=None):
 
 def sv_to_gnuplot_file(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                        header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
-                       transpose=False, save_path=None):
+                       transpose=False, formula=None, save_path=None):
   gnuplot_str = sv_to_gnuplot(input, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
-                              header_gap_size, number_label_columns, start_line, end_line, transpose)
+                              header_gap_size, number_label_columns, start_line, end_line, transpose, formula)
   if save_path is None:
     save_path = _save_path(input, ".dat")
   with open(save_path, 'w+') as f:
@@ -340,9 +398,9 @@ def sv_to_gnuplot_file(input, caption=None, name=None, delimiter=None, has_heade
 
 def sv_to_splot_files(input, caption=None, name=None, delimiter=None, has_header=True, left_aligned_to_header=False, right_aligned_to_header=False,
                       header_gap_size=0, number_label_columns=0, start_line=None, end_line=None,
-                      transpose=False, plot_command=None, interactive=False, plot_parameters=None, save_path=None):
+                      transpose=False, formula=None, plot_command=None, interactive=False, plot_parameters=None, save_path=None):
   if save_path is None:
     save_paths = [_save_path(input, ".svg"), _save_path(input, ".png")]
   gnuplot_str = sv_to_splot(input, name, delimiter, has_header, left_aligned_to_header, right_aligned_to_header,
-                            header_gap_size, number_label_columns, start_line, end_line, transpose, plot_command, interactive, plot_parameters, save_paths)
+                            header_gap_size, number_label_columns, start_line, end_line, transpose, formula, plot_command, interactive, plot_parameters, save_paths)
 
